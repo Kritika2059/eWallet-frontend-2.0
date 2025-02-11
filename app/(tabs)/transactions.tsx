@@ -1,59 +1,61 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 
-export default function SuccessfulLoad() {
+export default function Transactions() {
   const navigation = useNavigation();
-
-  const [user, setUser] = useState(null)
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  
-  const phoneNumber = 9866115041;
+
+  const phoneNumber = 9840379472;
 
   useEffect(() => {
-    const getUserDetails = async () => {
+    const fetchTransactions = async () => {
       try {
-        const response = await axios.get(`https://ewalletbackend-t1gl.onrender.com/api/v1/users/${phoneNumber}`);
-       setUser(response.data);
-      } catch(err) {
-        console.error('Error fetching data:', error);
-      setError(true);
-      }finally{
+        const response = await axios.get(`https://ewalletbackend-t1gl.onrender.com/api/v1/users/transactions/user/${phoneNumber}`);
+        setTransactions(response.data);
+      } catch (err) {
+        console.error('Error fetching transactions:', err);
+        setError(true);
+      } finally {
         setLoading(false);
       }
     };
 
-    getUserDetails();
+    fetchTransactions();
   }, []);
 
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <ActivityIndicator size="large" color="#00c853" />;
   }
 
   if (error) {
-    return <Text>Error loading data</Text>;
+    return <Text>Error loading transactions</Text>;
   }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton} >
-          {/* <Image source={require('../../assets/images/menu.png')} style={styles.menuImage} /> */}
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('index')}>
+          <Image source={require('../../assets/images/backArrow.png')} style={styles.backImage} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Results</Text>
-        <TouchableOpacity style={styles.speakerButton}>
-          <Image source={require('../../assets/images/speaker.png')} style={styles.speakerImage} />
-        </TouchableOpacity>
+        <Text style={styles.headerText}>Transactions</Text>
       </View>
-      <View style={styles.body}>
-        <View style={styles.resultContainer}>
-          <Image source={require('../../assets/images/profile.png')} style={styles.profileImage} />
-          <Text style={styles.thankYouText}>Thank you</Text>
-          <Text style={styles.successText}>Successful Load to</Text>
-          <Text style={styles.separator}>{user.name}</Text>
-        </View>
-      </View>
+      <FlatList
+        data={transactions}
+        keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
+        renderItem={({ item }) => (
+          <View style={styles.transactionItem}>
+            <Text style={styles.transactionText}>Amount: {item.amount}</Text>
+            <Text style={styles.transactionText}>From: {item.fromUser}</Text>
+            <Text style={styles.transactionText}>To: {item.toUser}</Text>
+            <Text style={styles.transactionText}>Date: {item.timestamp}</Text>
+            <Text style={styles.transactionText}>Type: {item.transferMethod}</Text>
+          </View>
+        )}
+      />
       <View style={styles.footer}>
         <TouchableOpacity style={styles.footerTab} onPress={() => navigation.navigate('index')}>
           <Image source={require('../../assets/images/home.png')} />
@@ -62,7 +64,7 @@ export default function SuccessfulLoad() {
         <TouchableOpacity style={styles.footerTab}>
           <Image source={require('../../assets/images/microphone.png')} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.footerTab} onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity style={styles.footerTab}>
           <Image source={require('../../assets/images/profile.png')} />
           <Text style={styles.footerText}>Profile</Text>
         </TouchableOpacity>
@@ -86,15 +88,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: 'center',
     position: 'relative',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
-  menuButton: {
+  backButton: {
     position: 'absolute',
-    left: 16,
+    left: 24,
     top: 50,
   },
-  menuImage: {
+  backImage: {
     width: 24,
     height: 24,
     tintColor: '#fff',
@@ -104,60 +104,21 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    flex: 1,
   },
-  speakerButton: {
-    position: 'absolute',
-    right: 16,
-    top: 50,
-  },
-  speakerImage: {
-    width: 24,
-    height: 24,
-    tintColor: '#fff',
-  },
-  body: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  resultContainer: {
-    alignItems: 'center',
-    padding: 20,
+  transactionItem: {
+    padding: 15,
     backgroundColor: '#fff',
     borderRadius: 10,
-    width: '80%',
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 2,
   },
-  profileImage: {
-    width: 50,
-    height: 50,
-    marginBottom: 20,
-  },
-  thankYouText: {
-    fontSize: 24,
-    color: '#00c853',
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  successText: {
-    fontSize: 16,
-    color: '#00c853',
-    marginBottom: 10,
-  },
-  separator: {
+  transactionText: {
     fontSize: 16,
     color: '#000',
-    marginBottom: 10,
-  },
-  amountText: {
-    fontSize: 24,
-    color: '#00c853',
-    fontWeight: 'bold',
   },
   footer: {
     flexDirection: 'row',

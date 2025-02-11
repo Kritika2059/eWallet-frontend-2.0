@@ -21,8 +21,6 @@ export default function SuccessfulTransfer() {
           <Image source={require('../../assets/images/profile.png')} style={styles.profileImage} />
           <Text style={styles.thankYouText}>Thank you</Text>
           <Text style={styles.successText}>Successful Transfer</Text>
-          <Text style={styles.separator}>Reciever</Text>
-          <Text style={styles.amountText}>100 Rs</Text>
         </View>
       </View>
       <View style={styles.footer}>

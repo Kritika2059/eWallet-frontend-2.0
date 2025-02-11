@@ -1,14 +1,61 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image, ActivityIndicator  } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
 
 export default function LoadMoney() {
   const navigation = useNavigation();
-  const [selectedBank, setSelectedBank] = useState('');
-  const [amount1, setAmount1] = useState('');
-  const [amount2, setAmount2] = useState('');
-  const [amount3, setAmount3] = useState('');
+  const [amount, setAmount] = useState('');
+
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const phoneNumber = 9866115041;
+
+  // Fetch user details and e-wallet balance
+  useEffect(() => {
+    const getUserDetails = async () => {
+      try {
+        const response = await axios.get(`https://ewalletbackend-t1gl.onrender.com/api/v1/users/${phoneNumber}`);
+        setUser(response.data);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getUserDetails();
+  }, []);
+
+  const loadBalance = async () => {
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      Alert.alert('Invalid Input', 'Please enter a valid amount');
+      return;
+    }
+    try {
+      console.log('Sending request to load balance with amount:', numericAmount);
+      const response = await axios.post(`https://ewalletbackend-t1gl.onrender.com/api/v1/users/${phoneNumber}/load`, {
+        amount: numericAmount,
+      });
+      console.log('API response:', response.data);
+      Alert.alert('Success', 'Money loaded successfully');
+    } catch (error) {
+      console.error('Error loading money:', error);
+      Alert.alert('Error', 'Failed to load money');
+    }
+  };
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#00c853" />;
+  }
+
+  if (error) {
+    return <Text>Error loading data</Text>;
+  }
 
   return (
     <View style={styles.container}>
@@ -20,48 +67,33 @@ export default function LoadMoney() {
         <View style={styles.balanceContainer}>
           <View style={styles.balanceBox}>
             <Text style={styles.balanceLabel}>BALANCE</Text>
-            <Text style={styles.balanceValue}>XXXX.XX</Text>
+            <Text style={styles.balanceValue}>{user.ewalletBalance}</Text>
           </View>
         </View>
       </View>
       <View style={styles.body}>
-        <View style={styles.inputContainer}>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedBank}
-              style={styles.picker}
-              onValueChange={(itemValue) => setSelectedBank(itemValue)}
-            >
-              <Picker.Item label="Select Linked Bank" value="" />
-              <Picker.Item label="Laxmi Sunrise Bank" value="laxmiSunrise" />
-              <Picker.Item label="Nabil Bank" value="nabil" />
-              <Picker.Item label="Prabhu Bank" value="prabhu" />
-            </Picker>
+        <TouchableOpacity style={styles.speakerButton}>
+          <Image source={require('../../assets/images/speaker.png')} style={styles.speakerImage} />
+        </TouchableOpacity>
+        <View style={styles.content}>
+          <View style={styles.inputContainer}>
+          <Text style={styles.balanceLabel}>Name: {user.name}</Text>
+          <Text style={styles.balanceLabel}>Bank: {user.bankName}</Text>
+          <Text style={styles.balanceLabel}>Phone: {user.phoneNumber}</Text>             
+            <TextInput
+              style={styles.input}
+              placeholder="Amount"
+              keyboardType="numeric"
+              value={amount}
+              onChangeText={setAmount}
+            />
+            <TouchableOpacity style={styles.confirmButton} onPress={loadBalance}>
+              <Text style={styles.confirmButtonText}>CONFIRM</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.proceedButton} onPress={() => navigation.navigate('successfulLoad')}>
+              <Text style={styles.proceedButtonText}>PROCEED</Text>
+            </TouchableOpacity>
           </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Account Number"
-            keyboardType="numeric"
-            value={amount1}
-            onChangeText={setAmount1}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Amount"
-            keyboardType="numeric"
-            value={amount2}
-            onChangeText={setAmount2}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Phone Number"
-            keyboardType="numeric"
-            value={amount3}
-            onChangeText={setAmount3}
-          />
-          <TouchableOpacity style={styles.proceedButton} onPress={() => navigation.navigate('confirmation2')}>
-            <Text style={styles.proceedButtonText}>PROCEED</Text>
-          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.footer}>
@@ -131,8 +163,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   balanceLabel: {
-    color: '#888',
-    fontSize: 14,
+    color: '#000',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   balanceValue: {
     color: '#00c853',
@@ -143,23 +176,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 20,
     paddingHorizontal: 20,
+    position: 'relative',
+  },
+  speakerButton: {
+    position: 'absolute',
+    top: 24,
+    right: 48,
+  },
+  speakerImage: {
+    width: 24,
+    height: 24,
+    tintColor: '#00c853',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
   },
   inputContainer: {
     padding: 20,
     paddingTop: 40,
-  },
-  pickerContainer: {
-    height: 56,
-    borderWidth: 1,
-    borderRadius: 10,
-    borderColor: '#00c853',
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-  },
-  picker: {
-    height: 56,
-    width: '100%',
   },
   input: {
     height: 56,
@@ -169,6 +204,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 20,
     backgroundColor: '#fff',
+  },
+  confirmButton: {
+    backgroundColor: '#00c853',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   proceedButton: {
     backgroundColor: '#00c853',

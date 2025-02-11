@@ -1,9 +1,67 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
 
 export default function SendMoney() {
   const navigation = useNavigation();
+  const [amount, setAmount] = useState('');
+  const [toPhoneNumber, setToPhoneNumber] = useState('');
+
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const phoneNumber = 9866115041;
+
+  // Fetch user details and e-wallet balance
+  useEffect(() => {
+    const getUserDetails = async () => {
+      try {
+        const response = await axios.get(`https://ewalletbackend-t1gl.onrender.com/api/v1/users/${phoneNumber}`);
+        setUser(response.data);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getUserDetails();
+  }, []);
+
+  const sendBalance = async () => {
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      Alert.alert('Invalid Input', 'Please enter a valid amount');
+      return;
+    }
+    if (!toPhoneNumber) {
+      Alert.alert('Invalid Input', 'Please enter a valid phone number');
+      return;
+    }
+    try {
+      const response = await axios.post(`https://ewalletbackend-t1gl.onrender.com/api/v1/users/${phoneNumber}/transfer`, {
+        amount: numericAmount,
+        toPhoneNumber: toPhoneNumber,
+      });
+      Alert.alert('Success', 'Money sent successfully');
+
+
+    } catch (error) {
+      console.error('Error sending money:', error);
+      Alert.alert('Error', 'Failed to send money');
+    }
+  };
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
+
+  if (error) {
+    return <Text>Error loading data</Text>;
+  }
 
   return (
     <View style={styles.container}>
@@ -15,7 +73,7 @@ export default function SendMoney() {
         <View style={styles.balanceContainer}>
           <View style={styles.balanceBox}>
             <Text style={styles.balanceLabel}>BALANCE</Text>
-            <Text style={styles.balanceValue}>XXXX.XX</Text>
+            <Text style={styles.balanceValue}>{user.ewalletBalance}</Text>
           </View>
         </View>
       </View>
@@ -29,13 +87,20 @@ export default function SendMoney() {
               style={styles.input}
               placeholder="Phone number"
               keyboardType="phone-pad"
+              value={toPhoneNumber}
+              onChangeText={setToPhoneNumber}
             />
             <TextInput
               style={styles.input}
               placeholder="Amount"
               keyboardType="numeric"
+              value={amount}
+              onChangeText={setAmount}
             />
-            <TouchableOpacity style={styles.proceedButton} onPress={() => navigation.navigate('pinConfirmation')}>
+            <TouchableOpacity style={styles.confirmButton} onPress={sendBalance}>
+              <Text style={styles.confirmButtonText}>CONFIRM</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.proceedButton} onPress={() => navigation.navigate('successfulTransfer')}>
               <Text style={styles.proceedButtonText}>PROCEED</Text>
             </TouchableOpacity>
           </View>
@@ -148,6 +213,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 20,
     backgroundColor: '#fff',
+  },
+  confirmButton: {
+    backgroundColor: '#00c853',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   proceedButton: {
     backgroundColor: '#00c853',
